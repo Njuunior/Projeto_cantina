@@ -3,6 +3,8 @@ dist/
 backend/.env
 *.log
 .DS_Store
+__pycache__/
+*.pyc
 
 # Fotos enviadas (mantenha a pasta; ignore arquivos)
 backend/uploads/students/*

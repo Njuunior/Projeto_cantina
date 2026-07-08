@@ -6,6 +6,7 @@
     "dev:api": "npm run dev --prefix backend",
     "dev:web": "npm run dev --prefix client",
     "dev:rfid": "py -3.12 rfid-bridge/server.py",
+    "dev": "start-sistema.bat",
     "install:all": "npm install --prefix backend && npm install --prefix client",
     "install:rfid": "py -3.12 -m pip install -r rfid-bridge/requirements.txt"
   }

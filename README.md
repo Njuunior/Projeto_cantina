@@ -1,115 +1,257 @@
 # Sistema de Controle de Consumo Escolar (RFID)
 
-Gestão de alunos, saldo pré-pago, limite pós-pago e operação da cantina com leitura por RFID (ou digitação manual).
-
-## Pré-requisitos
-
-1. **Node.js** 18 ou superior ([nodejs.org](https://nodejs.org/))
-2. **PostgreSQL** instalado e em execução
-3. Usuário do banco configurado (o projeto assume por padrão):
-   - **Usuário:** `postgres`
-   - **Senha:** `12345`
-   - **Banco:** `escola_cantina` (criado automaticamente no passo 3)
-
-Se sua senha ou host forem diferentes, edite o arquivo `backend/.env` e ajuste a variável `DATABASE_URL`.
+Gestão de alunos, saldo pré-pago, limite pós-pago e operação da cantina com leitura por **leitor RFID ACS ACR122U**.
 
 ---
 
-## Passo a passo para iniciar
+## O que você precisa baixar e instalar
 
-### 1. Clonar / abrir o projeto
+Instale **nesta ordem** na máquina que vai rodar o sistema (Windows recomendado para o leitor ACR122U).
 
-Abra a pasta raiz do projeto (`escola`), onde estão as pastas `backend`, `client` e `database`.
+| # | Software | Versão | Onde baixar | Para quê |
+|---|----------|--------|-------------|----------|
+| 1 | **Node.js** | 18 LTS ou superior | [nodejs.org](https://nodejs.org/) | API e site (React + Vite) |
+| 2 | **PostgreSQL** | 14 ou superior | [postgresql.org/download/windows](https://www.postgresql.org/download/windows/) | Banco de dados |
+| 3 | **Python** | **3.12** (importante: não use 3.14) | [python.org/downloads](https://www.python.org/downloads/) ou `winget install Python.Python.3.12` | Bridge do leitor RFID |
+| 4 | **Git** (opcional) | Qualquer recente | [git-scm.com](https://git-scm.com/) | Clonar o repositório |
+| 5 | **Driver do ACR122U** | — | Incluso no Windows ao conectar o leitor USB, ou pacote ACS | Leitor RFID na porta USB |
 
-### 2. Instalar dependências
+### Leitor RFID (ACR122U)
 
-Abra um terminal na raiz e execute:
+- Modelo suportado: **ACS ACR122U** (USB).
+- Conecte o leitor antes de iniciar o bridge.
+- Teste se o Windows reconheceu (PowerShell):
 
 ```powershell
-cd backend
-npm install
+py -3.12 -m pip install pyscard
+py -3.12 -c "from smartcard.System import readers; print(readers())"
 ```
 
-Em outro momento (ou na sequência), instale o frontend:
+Resultado esperado (nome pode variar): `['ACS ACR122 0']` ou `['ACS ACR122U PICC Interface']`.
+
+> **Python 3.14:** o pacote `pyscard` ainda não tem instalador pronto para 3.14 no Windows. Use **Python 3.12** para o bridge RFID (`npm run dev:rfid` já usa `py -3.12`).
+
+### Credenciais padrão do PostgreSQL
+
+Durante a instalação do PostgreSQL, anote a senha do usuário `postgres`. O projeto assume por padrão:
+
+| Campo | Valor padrão |
+|-------|----------------|
+| Usuário | `postgres` |
+| Senha | `12345` |
+| Porta | `5432` |
+| Banco | `escola_cantina` (criado automaticamente) |
+
+Se sua senha for diferente, edite `backend/.env` → `DATABASE_URL`.
+
+---
+
+## Instalação do projeto (primeira vez)
+
+Abra o **PowerShell** na pasta raiz do projeto (`escola`).
+
+### 1. Copiar variáveis de ambiente
 
 ```powershell
-cd client
-npm install
+copy backend\.env.example backend\.env
 ```
 
-**Atalho (na raiz):** se preferir um único comando após criar scripts, você pode instalar manualmente nas duas pastas como acima.
+Edite `backend/.env` se necessário (senha do PostgreSQL, etc.).
 
-### 3. Criar o banco de dados e dados iniciais
-
-Na pasta `backend`:
+### 2. Instalar dependências Node.js
 
 ```powershell
-cd backend
+npm run install:all
+```
+
+### 3. Instalar dependências do leitor RFID (Python)
+
+```powershell
+npm run install:rfid
+```
+
+### 4. Criar banco e dados iniciais
+
+Confirme que o **serviço PostgreSQL está rodando**, depois:
+
+```powershell
 npm run db:init
 ```
 
-O que esse comando faz:
+O comando:
 
-- Conecta no PostgreSQL usando `DATABASE_URL` do arquivo `backend/.env`
-- Cria o banco `escola_cantina`, se ainda não existir
-- Aplica o schema (`database/schema.sql`)
-- Aplica migrações em `database/migrations/` (ex.: coluna de foto do aluno)
-- Insere produtos e alunos de demonstração (`database/seed_data.sql`)
-- Cria o administrador padrão: **usuário** `admin`, **senha** `admin123`
+- Cria o banco `escola_cantina` (se não existir)
+- Aplica schema e migrações
+- Insere produtos e alunos de demonstração
+- Cria o admin: **usuário** `admin`, **senha** `admin123`
 
-> **Importante:** só é necessário rodar `npm run db:init` de novo se você quiser reaplicar o schema em um banco já existente (objetos usam `IF NOT EXISTS` onde possível). Dados demo podem duplicar produtos se o banco já tiver produtos — em ambiente limpo, rode uma vez.
-
-### 4. Subir a API (backend)
-
-```powershell
-cd backend
-npm run dev
-```
-
-A API ficará em **http://localhost:4000**  
-Teste rápido: abra no navegador ou use `curl` em `http://localhost:4000/api/health`
-
-### 5. Subir o site (frontend)
-
-Abra **outro** terminal:
-
-```powershell
-cd client
-npm run dev
-```
-
-O sistema abrirá em **http://localhost:5173**
-
-O Vite está configurado para enviar requisições `/api` e os arquivos em `/uploads` (fotos dos alunos) para o backend na porta 4000 — não é preciso configurar CORS manualmente para desenvolvimento.
-
-### 6. Usar o sistema
-
-| O quê | Onde |
-|--------|------|
-| **Operação da cantina** (RFID / produtos) | http://localhost:5173/ |
-| **Área administrativa** (login) | http://localhost:5173/admin → redireciona para login ou painel |
-
-**Login admin padrão:** `admin` / `admin123`
-
-**RFIDs de exemplo** (após `db:init`):
-
-- `RFID0001A1B2C3`
-- `RFID0002D4E5F6`
-- `RFID0003G7H8I9`
-- `RFID0004J0K1L2`
-
-Na tela da cantina, digite o código no campo e pressione **Enter**, ou use um leitor RFID que envie o texto como teclado.
+> Rode `npm run db:init` **uma vez** em ambiente limpo. Rodar de novo pode duplicar produtos demo.
 
 ---
 
-## Build de produção (frontend)
+## Rodar o sistema localmente
 
-```powershell
-cd client
-npm run build
+### Forma rápida (recomendada) — 1 clique, 3 janelas
+
+Dê **duplo clique** em:
+
+```
+start-sistema.bat
 ```
 
-Os arquivos gerados ficam em `client/dist`. Para servir em produção, use um servidor estático (nginx, etc.) e configure o proxy das chamadas `/api` para o mesmo host da API, ou ajuste `VITE_*` / URL da API conforme sua implantação.
+Ou no terminal, na pasta `escola`:
+
+```powershell
+npm run dev
+```
+
+O script:
+
+1. Encerra processos antigos nas portas 4000, 5173 e 8765
+2. Abre **3 janelas CMD** separadas:
+   - **Escola - API** (porta 4000)
+   - **Escola - Web** (porta 5173)
+   - **Escola - RFID** (porta 8765)
+
+Sempre que você rodar esse mesmo arquivo, ele primeiro **encerra o que já estiver aberto** e depois **inicia tudo novamente**.
+
+### O que subir no Git (scripts de inicialização)
+
+O `start-sistema.bat` depende do projeto inteiro. No Git, suba **pelo menos** estes arquivos novos/alterados:
+
+| Arquivo | Motivo |
+|---------|--------|
+| `start-sistema.bat` | Script que mata e sobe API + Web + RFID |
+| `package.json` | Comandos `npm run dev`, `dev:api`, `dev:web`, `dev:rfid` |
+| `README.md` | Instruções de instalação e uso |
+| `client/vite.config.js` | `host: true` para acesso na rede local |
+
+O restante do repositório (`backend/`, `client/`, `database/`, `rfid-bridge/`) **já precisa estar no Git** — sem eles o script não funciona.
+
+Comando para enviar só o que mudou dos scripts:
+
+```powershell
+git add start-sistema.bat package.json README.md client/vite.config.js .gitignore
+git commit -m "Adiciona script único para subir API, web e RFID"
+git push
+```
+
+**Não suba:** `node_modules/`, `backend/.env`, `__pycache__/`, `dist/` (já estão no `.gitignore`).
+
+### Forma manual (3 terminais)
+
+```powershell
+# Terminal 1 — API (porta 4000)
+npm run dev:api
+
+# Terminal 2 — Site (porta 5173)
+npm run dev:web
+
+# Terminal 3 — Leitor RFID (porta 8765) — só na máquina com o ACR122U conectado
+npm run dev:rfid
+```
+
+### URLs locais
+
+| Função | URL |
+|--------|-----|
+| **Cantina** (vendas com RFID) | http://localhost:5173/ |
+| **Administração** | http://localhost:5173/admin |
+| **API (teste)** | http://localhost:4000/api/health |
+
+**Login admin:** `admin` / `admin123`
+
+### Fluxo com cartão físico
+
+1. **Admin → Alunos → Novo aluno** — aproxime o cartão no leitor para capturar o UID e salve.
+2. **Cantina** (`/`) — aproxime o mesmo cartão; o aluno é selecionado automaticamente.
+3. Adicione produtos ao carrinho e confirme a compra.
+
+O indicador **"Pronto"** (verde) na cantina confirma que o leitor está conectado.
+
+---
+
+## Acesso por outras máquinas na mesma rede
+
+A máquina que roda os 3 processos acima é o **servidor**. Outros PCs/celulares na mesma rede Wi‑Fi/LAN acessam pelo **IP local** do servidor.
+
+### 1. Descobrir o IP do servidor
+
+No PowerShell **do servidor**:
+
+```powershell
+ipconfig
+```
+
+Use o **IPv4** da rede ativa (ex.: `192.168.1.50`).
+
+Ao subir o site, o Vite também mostra algo como:
+
+```
+➜  Local:   http://localhost:5173/
+➜  Network: http://192.168.1.50:5173/
+```
+
+### 2. Liberar portas no Firewall do Windows (servidor)
+
+Execute **como Administrador** no servidor (ajuste o IP se quiser restringir):
+
+```powershell
+New-NetFirewallRule -DisplayName "Escola Cantina Web" -Direction Inbound -Protocol TCP -LocalPort 5173 -Action Allow
+New-NetFirewallRule -DisplayName "Escola Cantina API" -Direction Inbound -Protocol TCP -LocalPort 4000 -Action Allow
+```
+
+> A porta **8765** (RFID) **não precisa** ser aberta na rede — o leitor USB fica só no servidor.
+
+### 3. Acessar de outro dispositivo
+
+Substitua `192.168.1.50` pelo IP real do servidor:
+
+| Função | URL na rede |
+|--------|-------------|
+| Cantina | http://192.168.1.50:5173/ |
+| Admin | http://192.168.1.50:5173/admin |
+
+### O que funciona em cada máquina
+
+| Recurso | No servidor (com leitor USB) | Outro PC/celular na rede |
+|---------|------------------------------|---------------------------|
+| Ver cantina e admin | Sim | Sim |
+| Cadastrar alunos (sem cartão) | Sim | Sim |
+| **Ler cartão RFID** | Sim | **Não** — leitor e bridge ficam no servidor |
+| Vendas na cantina | Sim (com cartão no servidor) | Só visualização; operação RFID é no servidor |
+
+**Recomendação:** use o **servidor** na bancada da cantina (com o ACR122U). Outros dispositivos na rede podem acessar o **painel admin** (relatórios, créditos, cadastros manuais).
+
+### CORS (se acessar a API diretamente)
+
+Se algo chamar `http://IP:4000` direto (sem passar pelo Vite), ajuste em `backend/.env`:
+
+```env
+CLIENT_ORIGIN=http://192.168.1.50:5173
+```
+
+Para aceitar qualquer origem em desenvolvimento na rede:
+
+```env
+CLIENT_ORIGIN=true
+```
+
+No uso normal, o site em `:5173` faz proxy para a API — **não é obrigatório** alterar o CORS.
+
+---
+
+## Scripts disponíveis (pasta raiz)
+
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` ou `start-sistema.bat` | **Sobe tudo** em 3 CMD separados |
+| `npm run install:all` | Instala dependências do backend e client |
+| `npm run install:rfid` | Instala `pyscard` e `websockets` (Python 3.12) |
+| `npm run db:init` | Cria banco, schema, seeds e admin |
+| `npm run dev:api` | Sobe só a API (porta 4000) |
+| `npm run dev:web` | Sobe só o site (porta 5173, acessível na rede) |
+| `npm run dev:rfid` | Sobe só o bridge do leitor ACR122U (porta 8765) |
 
 ---
 
@@ -119,51 +261,68 @@ Os arquivos gerados ficam em `client/dist`. Para servir em produção, use um se
 |----------|-----------|
 | `PORT` | Porta da API (padrão `4000`) |
 | `DATABASE_URL` | URL completa do PostgreSQL |
-| `JWT_SECRET` | Segredo para assinar tokens do admin (troque em produção) |
-| `CLIENT_ORIGIN` | Origem permitida no CORS (ex.: `http://localhost:5173`) |
-| `WHATSAPP_PHONE_NUMBER_ID` | ID do número no WhatsApp Cloud API (Meta) |
-| `WHATSAPP_TOKEN` | Token de acesso da API do WhatsApp |
+| `JWT_SECRET` | Segredo JWT do admin (troque em produção) |
+| `CLIENT_ORIGIN` | CORS — `http://localhost:5173`, IP da rede ou `true` |
+| `WHATSAPP_PHONE_NUMBER_ID` | ID do número na WhatsApp Cloud API (Meta) |
+| `WHATSAPP_TOKEN` | Token da API WhatsApp |
+| `WHATSAPP_DEBUG` | `1` = logs de envio no console |
+| `WHATSAPP_TEST_OVERRIDE_TO` | Força envio para um número de teste (E.164) |
 
-O arquivo `backend/.env.example` serve de modelo.
+Opcional no client (arquivo `client/.env`):
 
-### WhatsApp (extrato automático)
+| Variável | Descrição |
+|----------|-----------|
+| `VITE_RFID_WS_URL` | URL do bridge RFID (padrão `ws://127.0.0.1:8765`) |
 
-O envio usa a **WhatsApp Cloud API (Meta)**. Importante:
+---
 
-- O **remetente** que aparece no WhatsApp é **sempre** o número comercial ligado ao **`WHATSAPP_PHONE_NUMBER_ID`** no painel da Meta.  
-  Não dá para escolher outro “número de” no código — se o remetente deve ser **(71) 99947-7669**, essa linha precisa ser a **conta WhatsApp Business** conectada ao app, e você copia o **Phone number ID** dela em: [Meta for Developers](https://developers.facebook.com/) → seu app → **WhatsApp** → **API Setup**.
+## WhatsApp (extrato automático)
 
-- No `backend/.env` são obrigatórios para enviar de verdade:
-  - `WHATSAPP_PHONE_NUMBER_ID`
-  - `WHATSAPP_TOKEN`
+Opcional. Sem configurar, o sistema funciona normalmente — só não envia mensagens.
 
-- O **destinatário** é o WhatsApp/contato do responsável cadastrado no aluno (com **opt-in** marcado).  
-  Para **teste** sem depender do cadastro, use no `.env`:  
-  `WHATSAPP_TEST_OVERRIDE_TO=5571999477669`  
-  (todas as notificações vão para esse número).
+- Configure `WHATSAPP_PHONE_NUMBER_ID` e `WHATSAPP_TOKEN` no [Meta for Developers](https://developers.facebook.com/) → app → WhatsApp → API Setup.
+- O remetente é sempre o número comercial ligado ao **Phone number ID** na Meta.
+- Destinatário: WhatsApp do responsável cadastrado no aluno (com opt-in).
+- Teste: `WHATSAPP_TEST_OVERRIDE_TO=5571999999999` (DDI + DDD + número, só dígitos).
 
-- Em modo **Development** na Meta, só chegam mensagens para números que você adicionar como permitidos no app. Veja a documentação da Meta sobre números de teste.
+Após confirmar o carrinho, a mensagem pode incluir: itens, total, gasto do dia, saldo e limite.
 
-- Com `WHATSAPP_DEBUG=1`, o backend registra no console **por que** não enviou ou o erro retornado pela API.
+---
 
-Conteúdo típico da mensagem após confirmar o carrinho:
+## Build de produção (opcional)
 
-- itens e total da compra
-- total gasto no dia
-- saldo atual e limite usado
+```powershell
+cd client
+npm run build
+```
+
+Arquivos em `client/dist`. Em produção, sirva com nginx/IIS e configure proxy de `/api` e `/uploads` para a API.
 
 ---
 
 ## Problemas comuns
 
-- **Erro de conexão com o PostgreSQL**  
-  Confirme se o serviço do PostgreSQL está rodando, se usuário/senha batem com `DATABASE_URL` e se a porta (geralmente `5432`) está correta.
+| Problema | Solução |
+|----------|---------|
+| Erro de conexão PostgreSQL | Verifique se o serviço está rodando, senha em `DATABASE_URL` e porta `5432` |
+| Porta 4000 ou 5173 em uso | Feche o outro programa ou altere `PORT` / `vite.config.js` |
+| Login admin falha | Rode `npm run db:init` em banco vazio ou confira usuário `admin` |
+| Leitor "Offline" na cantina | Rode `npm run dev:rfid` na máquina com o USB conectado |
+| `pyscard` falha com **Microsoft Visual C++ 14.0** | Você está no Python errado (3.13/3.14). Instale **Python 3.12** e use `py -3.12` — veja seção abaixo |
+| Outro PC não abre o site | Libere firewall (porta 5173), confirme mesmo Wi‑Fi e IP correto |
+| Cartão não cadastrado | Cadastre o UID real em Admin → Alunos (UIDs demo `RFID0001...` não são cartões físicos) |
 
-- **Porta 4000 ou 5173 em uso**  
-  Altere `PORT` no `.env` do backend ou a porta no `client/vite.config.js` (`server.port`).
+### Encerrar tudo (Windows)
 
-- **Login admin não funciona**  
-  Rode de novo `npm run db:init` em um banco vazio ou verifique se o usuário `admin` existe na tabela `admins`.
+Se quiser encerrar manualmente sem subir de novo, use:
+
+```powershell
+$ports = 4000, 5173, 8765
+foreach ($port in $ports) {
+  Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
+    ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+}
+```
 
 ---
 
@@ -171,10 +330,13 @@ Conteúdo típico da mensagem após confirmar o carrinho:
 
 ```
 escola/
-├── backend/          # API Express + integração PostgreSQL
+├── backend/          # API Express + PostgreSQL
 ├── client/           # React + Vite + Tailwind
-├── database/         # schema.sql e seed_data.sql
+├── database/         # schema.sql, seeds e migrations
+├── rfid-bridge/      # Serviço Python (ACR122U → WebSocket)
+├── start-sistema.bat # Encerra tudo e inicia API + Web + RFID (3 CMD)
+├── package.json      # Scripts npm da raiz
 └── README.md
 ```
 
-Para dúvidas sobre regras de negócio (saldo x limite x quitação), consulte os comentários em `database/schema.sql` e o código em `backend/src/services/consumptionService.js`.
+Regras de negócio (saldo × limite × quitação): `database/schema.sql` e `backend/src/services/consumptionService.js`.
