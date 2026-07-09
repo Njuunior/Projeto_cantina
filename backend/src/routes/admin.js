@@ -5,6 +5,7 @@ import { requireAdmin } from '../middleware/auth.js';
 import { serializeStudent, serializeProduct } from '../util/serialize.js';
 import { parseMoneyToCents } from '../util/money.js';
 import { normalizeRfidUid } from '../util/rfid.js';
+import { PREDEFINED_CLASSES } from '../util/classes.js';
 import {
   maybeStudentPhotoUpload,
   studentPhotoUpload,
@@ -14,18 +15,6 @@ import {
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
-
-const PREDEFINED_CLASSES = [
-  '1º A',
-  '1º B',
-  '1º C',
-  '2º A',
-  '2º B',
-  '2º C',
-  '3º A',
-  '3º B',
-  '3º C',
-];
 
 /** Alunos */
 adminRouter.get('/students', async (_req, res) => {

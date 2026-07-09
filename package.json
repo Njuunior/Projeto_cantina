@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "db:init": "npm run db:init --prefix backend",
+    "db:clear-students": "npm run db:clear-students --prefix backend",
     "dev:api": "npm run dev --prefix backend",
     "dev:web": "npm run dev --prefix client",
     "dev:rfid": "py -3.12 rfid-bridge/server.py",

@@ -5,7 +5,21 @@ import api from '../../lib/api';
 import { brl, parseBRLToCents } from '../../lib/format';
 import { useRfidReader } from '../../hooks/useRfidReader';
 
-const DEFAULT_CLASSES = ['1º A', '1º B', '1º C', '2º A', '2º B', '2º C', '3º A', '3º B', '3º C'];
+const DEFAULT_CLASSES = [
+  'G.2',
+  'G.3',
+  'G.4',
+  'G.5',
+  '1 ano',
+  '2 ano',
+  '3 ano',
+  '4 ano',
+  '5 ano',
+  '6 ano',
+  '7 ano',
+  '8 ano',
+  '9 ano',
+];
 
 function StudentAvatar({ name, photoUrl }) {
   const [broken, setBroken] = useState(false);
@@ -98,7 +112,7 @@ export default function Students() {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setForm({
       name: '',
-      className: classOptions[0] || '1º A',
+      className: classOptions[0] || 'G.2',
       guardianName: '',
       guardianRelationship: '',
       guardianDocument: '',
@@ -121,7 +135,7 @@ export default function Students() {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setForm({
       name: s.name || '',
-      className: s.className || classOptions[0] || '1º A',
+      className: s.className || classOptions[0] || 'G.2',
       guardianName: s.guardianName || '',
       guardianRelationship: s.guardianRelationship || '',
       guardianDocument: s.guardianDocument || '',

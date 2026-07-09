@@ -249,6 +249,7 @@ No uso normal, o site em `:5173` faz proxy para a API — **não é obrigatório
 | `npm run install:all` | Instala dependências do backend e client |
 | `npm run install:rfid` | Instala `pyscard` e `websockets` (Python 3.12) |
 | `npm run db:init` | Cria banco, schema, seeds e admin |
+| `npm run db:clear-students` | **Apaga todos os alunos** (e consumos/créditos deles). Mantém produtos e admin |
 | `npm run dev:api` | Sobe só a API (porta 4000) |
 | `npm run dev:web` | Sobe só o site (porta 5173, acessível na rede) |
 | `npm run dev:rfid` | Sobe só o bridge do leitor ACR122U (porta 8765) |
@@ -310,7 +311,7 @@ Arquivos em `client/dist`. Em produção, sirva com nginx/IIS e configure proxy 
 | Leitor "Offline" na cantina | Rode `npm run dev:rfid` na máquina com o USB conectado |
 | `pyscard` falha com **Microsoft Visual C++ 14.0** | Você está no Python errado (3.13/3.14). Instale **Python 3.12** e use `py -3.12` — veja seção abaixo |
 | Outro PC não abre o site | Libere firewall (porta 5173), confirme mesmo Wi‑Fi e IP correto |
-| Cartão não cadastrado | Cadastre o UID real em Admin → Alunos (UIDs demo `RFID0001...` não são cartões físicos) |
+| Cartão não cadastrado | Cadastre o UID real em Admin → Alunos com o cartão físico |
 
 ### Encerrar tudo (Windows)
 
